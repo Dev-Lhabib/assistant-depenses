@@ -3,11 +3,27 @@
 > Instructions for every AI agent (Claude Code, OpenCode, Cursor, Copilot) working on this project.
 > Read this file completely before writing any code, generating any proposal, or modifying any file.
 
+<!-- OPENSPEC:START -->
+## OpenSpec Instructions
+
+Always open `openspec/project.md` when the request:
+- Mentions planning, proposals, specs, or a new feature
+- Introduces new capabilities, breaking changes, or architecture shifts
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `openspec/project.md` to learn:
+- Stack versions, models, enums, routing conventions
+- Hard architecture rules (especially: no AI calls in controllers)
+- Domain knowledge (receipt text in darija, JSON contract, queue workflow)
+
+Keep this managed block so `openspec update` can refresh the instructions.
+<!-- OPENSPEC:END -->
+
 ---
 
 ## Project in One Sentence
 
-Laravel 11 app that extracts structured expense data from raw supplier receipts (darija / French / Arabic)
+Laravel 13 app that extracts structured expense data from raw supplier receipts (darija / French / Arabic)
 using Groq AI via the official `laravel/ai` SDK, processed asynchronously via Laravel Queue.
 
 ---
@@ -44,6 +60,8 @@ Read these before every code generation. Violating any of these is a hard error.
 
 ```
 app/
+  Contracts/
+    RecuContract.php            ← JSON schema definition (reused by Job and tests)
   Enums/
     StatutRecu.php              ← pending | processed | failed (with label() method)
     CategorieDepense.php        ← alimentaire | boissons | hygiene | entretien | autre (with label())
@@ -53,16 +71,22 @@ app/
       DepenseController.php     ← index (with ?categorie= filter)
     Requests/
       StoreRecuRequest.php      ← validates texte_brut: required|string|min:20|max:5000
+      StoreRecuImageRequest.php ← validates image: mimes:jpg,jpeg,png|max:5120 (bonus B1)
   Jobs/
     ExtraireDepensesDuRecu.php  ← THE AI JOB — $tries=1, catch→failed, success→processed
   Models/
-    Recu.php                    ← hasMany(Depense), belongsTo(User), casts: statut/payload_brut
+    Recu.php                    ← hasMany(Depense), belongsTo(User), casts: statut/payload_brut, image_path (nullable)
     Depense.php                 ← belongsTo(Recu), cast: categorie
+  Services/
+    ExtractionService.php       ← builds prompt + calls AI::structured()
 openspec/
   project.md                    ← full domain context, read before every proposal
   config.yaml                   ← rules injected into every OpenSpec artifact
   specs/                        ← source of truth per domain
   changes/                      ← one folder per active feature
+tests/
+  Feature/
+    ExtractionIATest.php        ← PHPUnit test with AI::fake() (bonus B2)
 ```
 
 ---
@@ -168,6 +192,38 @@ Every commit where the agent generated or helped write code **must** include `[A
 
 ---
 
+## Testing — PHPUnit
+
+Tests use **PHPUnit** (not Pest). All test classes extend `Tests\TestCase`.
+
+```php
+// Correct test structure
+class ExtractionIATest extends TestCase
+{
+    use RefreshDatabase;
+
+    /** @test */
+    public function test_extraction_cree_depenses_et_passe_statut_a_processed(): void
+    {
+        // AI::fake([...])
+        // dispatch(new ExtraireDepensesDuRecu($recu))
+        // $this->assertDatabaseHas('depenses', [...])
+        // $this->assertEquals(StatutRecu::Processed, $recu->fresh()->statut)
+    }
+
+    /** @test */
+    public function test_extraction_echoue_si_api_indisponible(): void
+    {
+        // AI::fake() throws exception
+        // $this->assertEquals(StatutRecu::Failed, $recu->fresh()->statut)
+    }
+}
+```
+
+Run tests: `php artisan test` or `php artisan test --filter=ExtractionIATest`
+
+---
+
 ## Git Branch Conventions
 
 ```
@@ -185,12 +241,17 @@ feature/bonus-image         ← Bonus B1: image upload + vision model
 ## Docker Commands Reference
 
 ```bash
-docker compose up -d                    # start all services
-docker compose exec app php artisan migrate
-docker compose exec app php artisan queue:work
-docker compose exec app php artisan make:job ExtraireDepensesDuRecu
-docker compose exec app php artisan make:request StoreRecuRequest
-docker compose exec app php artisan test
+# Docker — only MySQL + phpMyAdmin run in containers
+docker compose -f compose.yaml up -d    # start MySQL and phpMyAdmin
+docker compose -f compose.yaml down     # stop containers
+
+# Laravel runs locally — all artisan commands run on your machine
+php artisan migrate
+php artisan queue:work --tries=1 --timeout=60
+php artisan make:job ExtraireDepensesDuRecu
+php artisan make:request StoreRecuRequest
+php artisan test
+php artisan serve
 ```
 
 ---
@@ -226,5 +287,5 @@ public function index(): View
 
 ---
 
-*Last updated: Day 1 — Lundi 08/06/2026*
+*Last updated: Day 4 — Jeudi 11/06/2026*
 *Deadline: Vendredi 12/06/2026 — 14h30*

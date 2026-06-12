@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Enums\StatutRecu;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Recu extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'user_id',
         'texte_brut',
@@ -20,6 +23,7 @@ class Recu extends Model
     ];
 
     protected $casts = [
+        'statut' => StatutRecu::class,
         'payload_brut' => 'array',
         'total_estime' => 'decimal:2',
     ];

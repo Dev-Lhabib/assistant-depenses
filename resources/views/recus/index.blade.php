@@ -35,11 +35,11 @@
           <tr class="border-t text-sm">
             <td class="p-3">
               <span class="px-2 py-1 rounded text-xs font-medium
-                {{ $recu->statut === 'traite' ? 'bg-green-100 text-green-700' : '' }}
-                {{ $recu->statut === 'en_attente' ? 'bg-orange-100 text-orange-700' : '' }}
-                {{ $recu->statut === 'echoue' ? 'bg-red-100 text-red-700' : '' }}
+                {{ $recu->statut->value === 'traite' ? 'bg-green-100 text-green-700' : '' }}
+                {{ $recu->statut->value === 'en_attente' ? 'bg-orange-100 text-orange-700' : '' }}
+                {{ $recu->statut->value === 'echoue' ? 'bg-red-100 text-red-700' : '' }}
               ">
-                {{ $recu->statut === 'en_attente' ? 'En attente' : ($recu->statut === 'traite' ? 'Traité' : 'Échoué') }}
+                {{ $recu->statut->label() }}
               </span>
             </td>
             <td class="p-3">{{ $recu->depenses_count }}</td>

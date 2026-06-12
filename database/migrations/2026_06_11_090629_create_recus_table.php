@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('recus', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->text('texte_brut')->nullable;
+            $table->text('texte_brut')->nullable();
             $table->string('image_path')->nullable();
-            $table->string('statut')->default('en_ettente');
+            $table->string('statut')->default('en_attente');
             $table->text('erreur_traitement')->nullable();
             $table->json('payload_brut')->nullable();
             $table->decimal('total_estime', 8, 2)->nullable();

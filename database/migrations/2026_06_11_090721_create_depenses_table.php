@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('depenses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('recu_id')->constrained()->onDelete('cascade');
-            $table->string('libele');
-            $table->integer('quatite');
+            $table->string('libelle');
+            $table->integer('quantite');
             $table->decimal('prix_unitaire', 8, 2);
             $table->string('categorie');
             $table->timestamps();

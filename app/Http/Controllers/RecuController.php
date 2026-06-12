@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatutRecu;
+use App\Http\Requests\StoreRecuRequest;
+use App\Jobs\ExtraireDepensesDuRecu;
+use App\Models\Recu;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
-use App\Http\Requests\StoreRecuRequest;
-use App\Models\Recu;
 
 class RecuController extends Controller
 {
@@ -36,10 +38,12 @@ class RecuController extends Controller
      */
     public function store(StoreRecuRequest $request)
     {
-        auth()->user()->recus()->create([
+        $recu = auth()->user()->recus()->create([
             'texte_brut' => $request->validated()['texte_brut'],
-            'statut'       => 'en_attente',
+            'statut' => StatutRecu::EnAttente,
         ]);
+
+        ExtraireDepensesDuRecu::dispatch($recu);
 
         return redirect()->route('recus.index')
             ->with('success', 'Reçu soumis avec succès.');

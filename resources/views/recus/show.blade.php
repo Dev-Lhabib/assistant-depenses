@@ -8,19 +8,24 @@
         {{-- Texte source --}}
         <div class="bg-white shadow rounded p-5">
             <h3 class="font-medium text-gray-700 mb-2">Texte source</h3>
-            <pre class="text-sm text-gray-600 whitespace-pre-wrap">{{ $recu->texte_source }}</pre>
+            <pre class="text-sm text-gray-600 whitespace-pre-wrap">{{ $recu->texte_brut }}</pre>
         </div>
 
         {{-- Statut --}}
         <div class="bg-white shadow rounded p-5">
             <h3 class="font-medium text-gray-700 mb-2">Statut</h3>
             <span class="px-3 py-1 rounded text-sm font-medium
-                {{ $recu->statut === 'traite' ? 'bg-green-100 text-green-700' : '' }}
-                {{ $recu->statut === 'en_attente' ? 'bg-orange-100 text-orange-700' : '' }}
-                {{ $recu->statut === 'echoue' ? 'bg-red-100 text-red-700' : '' }}
+                {{ $recu->statut->value === 'traite' ? 'bg-green-100 text-green-700' : '' }}
+                {{ $recu->statut->value === 'en_attente' ? 'bg-orange-100 text-orange-700' : '' }}
+                {{ $recu->statut->value === 'echoue' ? 'bg-red-100 text-red-700' : '' }}
             ">
-                {{ $recu->statut === 'en_attente' ? 'En attente' : ($recu->statut === 'traite' ? 'Traité' : 'Échoué') }}
+                {{ $recu->statut->label() }}
             </span>
+            @if($recu->erreur_traitement)
+                <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    {{ $recu->erreur_traitement }}
+                </div>
+            @endif
         </div>
 
         {{-- Dépenses --}}
@@ -45,7 +50,7 @@
                             <td class="p-2">{{ $depense->libelle }}</td>
                             <td class="p-2">{{ $depense->quantite }}</td>
                             <td class="p-2">{{ number_format($depense->prix_unitaire, 2) }} MAD</td>
-                            <td class="p-2">{{ $depense->categorie }}</td>
+                            <td class="p-2">{{ $depense->categorie->label() }}</td>
                         </tr>
                         @endforeach
                     </tbody>

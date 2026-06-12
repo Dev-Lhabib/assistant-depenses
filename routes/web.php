@@ -1,11 +1,12 @@
 <?php
 
+use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RecuController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('recus.index');
 });
 
 Route::get('/dashboard', function () {
@@ -18,6 +19,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::resource('recus', RecuController::class)->except(['edit', 'update']);
+    Route::get('/depenses', [DepenseController::class, 'index'])->name('depenses.index');
 });
 
 require __DIR__.'/auth.php';

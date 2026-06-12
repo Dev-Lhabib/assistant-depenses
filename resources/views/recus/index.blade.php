@@ -23,7 +23,6 @@
       <table class="w-full border-collapse bg-white shadow rounded">
         <thead class="bg-gray-100 text-left text-sm text-gray-600">
           <tr>
-            <th class="p-3">Extrait</th>
             <th class="p-3">Statut</th>
             <th class="p-3">Dépenses</th>
             <th class="p-3">Date</th>

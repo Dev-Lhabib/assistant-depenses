@@ -3,22 +3,6 @@
 > Instructions for every AI agent (Claude Code, OpenCode, Cursor, Copilot) working on this project.
 > Read this file completely before writing any code, generating any proposal, or modifying any file.
 
-<!-- OPENSPEC:START -->
-## OpenSpec Instructions
-
-Always open `openspec/project.md` when the request:
-- Mentions planning, proposals, specs, or a new feature
-- Introduces new capabilities, breaking changes, or architecture shifts
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `openspec/project.md` to learn:
-- Stack versions, models, enums, routing conventions
-- Hard architecture rules (especially: no AI calls in controllers)
-- Domain knowledge (receipt text in darija, JSON contract, queue workflow)
-
-Keep this managed block so `openspec update` can refresh the instructions.
-<!-- OPENSPEC:END -->
-
 ---
 
 ## Project in One Sentence

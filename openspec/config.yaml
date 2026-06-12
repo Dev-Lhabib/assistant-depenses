@@ -1,0 +1,217 @@
+# openspec/config.yaml
+# Injected into every OpenSpec artifact (proposal, specs, design, tasks).
+# Tool-agnostic — read by the OpenSpec CLI regardless of which AI agent
+# (GitHub Copilot, Claude Code, etc.) consumes openspec/changes/ and openspec/specs/.
+# Keep in sync with AGENTS.md, openspec/project.md, and .github/copilot-instructions.md.
+
+schema: spec-driven
+
+context: |
+  # Assistant Dépenses — Extraction Intelligente de Reçus avec Laravel & IA
+
+  ## Le Problème
+  Si Brahim tient une épicerie de quartier. Il accumule des dizaines de reçus fournisseurs
+  par mois — papier griffonné, montants en darija, abréviations que lui seul comprend.
+  Il ne sait pas combien il dépense par catégorie (boissons, entretien, alimentaire).
+  Saisir à la main dans un tableur ? Il n'a ni le temps ni l'envie.
+
+  ## La Solution
+  Une app Laravel où Si Brahim colle le texte d'un reçu (ou uploade une photo) → l'IA
+  (Groq via laravel/ai SDK) extrait automatiquement les articles structurés (libellé,
+  quantité, prix, catégorie) en structured output garanti — jamais de json_decode qui
+  plante. Le traitement IA tourne en background via Queue, la page ne fige jamais.
+
+  ## User Stories
+  - US1 – Authentification (inscription/connexion/déconnexion)
+  - US2 – Liste des reçus avec statut formaté + nombre de dépenses extraites
+  - US3 – Soumettre un reçu (texte) → dispatch immédiat, traitement async
+  - US4 – Détail d'un reçu : texte source, statut, dépenses (libellé, qty, prix, catégorie)
+  - US5 – Supprimer un reçu + cascade delete dépenses
+  - US6 – Extraction structurée IA via laravel/ai structured output
+  - US7 – Suivi du statut : En attente → Traité / Échoué (avec erreur_traitement visible)
+  - US8 – Liste filtrable des dépenses par catégorie
+  - Bonus B1 – Upload photo reçu (vision model)
+  - Bonus B2 – Test PHPUnit avec AI::fake() sans appel Groq réel
+
+  ## Contrat JSON IA (NE PAS CHANGER)
+  ```json
+  {
+    "articles": [
+      { "libellé": "string", "quantité": "integer", "prix_unitaire": "number",
+        "catégorie": "alimentaire | boissons | hygiène | entretien | autre" }
+    ],
+    "total_estimé": "number",
+    "devise": "string (ex: MAD)"
+  }
+  ```
+
+  ## Modèle de données (MCD/MLD validé)
+  - users: id, nom, email, mot_de_passe
+  - recus: id, user_id (FK), texte_brut (nullable), image_path (nullable),
+    statut (en_attente|traite|echoue), erreur_traitement (nullable text),
+    payload_brut (json nullable), total_estime (decimal nullable), devise (default MAD)
+  - depenses: id, recu_id (FK, onDelete cascade), libelle, quantite, prix_unitaire,
+    categorie (alimentaire|boissons|hygiene|entretien|autre)
+  - Relations: User hasMany Recu, Recu hasMany Depense, Recu belongsTo User,
+    Depense belongsTo Recu
+  - texte_brut et image_path sont mutuellement exclusifs (texte OU image, jamais les deux)
+  - erreur_traitement stocke le message Groq si statut = echoue, affiché à l'utilisateur
+
+  ## Architecture Backend (Règles Non-Négociables)
+  - Queue + Job obligatoire : appel IA dans ExtraireDepensesDuRecu, dispatché, jamais
+    dans Controller
+  - Form Request obligatoire : StoreRecuRequest / StoreRecuImageRequest valident avant
+    dispatch, pas de gaspillage d'appel API
+  - Eloquent Casts obligatoires : enum StatutRecu, enum CategorieDepense, array payload_brut
+  - Relation Recu hasMany Depense, cascade delete
+  - Scoping : chaque requête scopée à auth()->id()
+  - Eager loading : zéro N+1 (Debugbar pour contrôle)
+  - Structured output : via laravel/ai, jamais json_decode sur texte libre
+
+  ## Tech Stack
+  - PHP 8.3, Laravel 13, MySQL 8 (Docker compose.yaml)
+  - laravel/ai (SDK officiel pour appels Groq, provider llama-3.3-70b-versatile)
+  - Laravel Queue (database driver)
+  - Blade + Tailwind + Vite
+  - Breeze pour starter auth (Blade stack)
+  - Debugbar (barryvdh/laravel-debugbar) + Telescope
+  - Docker : MySQL + phpMyAdmin uniquement ; Laravel tourne en local
+    (`php artisan serve`, `php artisan queue:work`)
+
+  ## Key files
+  - app/Contracts/RecuContract.php — schéma JSON, réutilisé par le Job et les tests
+  - app/Services/ExtractionService.php — construit le prompt + appelle AI::structured()
+  - app/Jobs/ExtraireDepensesDuRecu.php — le Job d'extraction ($tries = 1)
+  - app/Http/Requests/StoreRecuRequest.php — valide texte_brut (min:20|max:5000)
+  - app/Http/Requests/StoreRecuImageRequest.php — valide image (mimes:jpg,jpeg,png|max:5120) — bonus
+  - app/Enums/StatutRecu.php — EnAttente | Traite | Echoue
+  - app/Enums/CategorieDepense.php — Alimentaire | Boissons | Hygiene | Entretien | Autre
+  - tests/Feature/ExtractionIATest.php — PHPUnit + AI::fake(), pas d'appel Groq réel — bonus
+
+  ## Testing
+  - PHPUnit uniquement (PAS Pest)
+  - Classes extend Tests\TestCase + RefreshDatabase
+  - Méthodes préfixées test_ ou annotées /** @test */
+  - Commande : php artisan test
+  - Bonus B2 : AI::fake() dans ExtractionIATest, deux scénarios (succès + échec)
+
+  ## Git Conventions
+  - Format : type(scope): message [AI-assisted]
+  - Types : feat, fix, chore, docs, test, perf, refactor
+  - Scopes : auth, recus, depenses, ia, queue, db, views, enums, requests, docker, openspec, bonus
+  - Branches : main, feature/auth, feature/recus-crud, feature/extraction-ia,
+    feature/queue-traitement, feature/depenses-filtre, feature/bonus-image
+  - Minimum 15 commits, commits quotidiens obligatoires sur la branche active
+  - Mention AI obligatoire dans les messages : [AI-assisted] ou [AI-generated, reviewed]
+
+  ## OpenSpec Workflow
+  1. /opsx:propose <feature-name> → Plan: proposal + specs + design + tasks
+  2. Review artifacts in openspec/changes/<feature-name>/
+  3. /opsx:apply <feature-name> → Build: implement following tasks.md
+  4. /opsx:archive <feature-name> → Merge specs into openspec/specs/
+
+  ## Délivrables
+  - Jira (board partagé), MCD & MLD
+  - Repository GitHub : minimum 15 commits
+  - Dossier openspec/specs/ avec au moins 3 features documentées
+  - AGENTS.md à la racine, README.md
+
+# --- Branch conventions -------------------------------------------------------
+branches:
+  main: main
+  features:
+    - feature/auth              # US1 — register/login/logout
+    - feature/recus-crud        # US2-US5 — CRUD reçus + Blade views
+    - feature/extraction-ia     # US6-US7 — laravel/ai + Groq + structured output
+    - feature/queue-traitement  # US7 — Job + Queue + status tracking
+    - feature/depenses-filtre   # US8 — filterable expense list
+    - feature/bonus-image       # Bonus B1/B2 — image upload + PHPUnit tests
+  rule: |
+    Every OpenSpec change folder (openspec/changes/<feature-name>/) must map 1:1
+    to one of the branches above. State explicitly in the proposal which branch
+    the change belongs to. Never propose work spanning multiple branches in one
+    change — split it instead. Each active feature branch needs at least one
+    commit per day worked.
+
+# --- Commit conventions ---------------------------------------------------------
+commits:
+  format: "<type>(<scope>): <description> [<ai-tag>]"
+  types: [feat, fix, chore, docs, test, perf, refactor]
+  scopes: [auth, recus, depenses, ia, queue, db, views, enums, requests, docker, openspec, bonus]
+  ai_tags: ["AI-assisted", "AI-generated, reviewed"]
+  minimum_total: 15
+  rule: |
+    Every commit where the agent generated or materially helped write code MUST
+    include one of the ai_tags. Each generated tasks.md must end with a ready-to-copy
+    commit message following this format.
+
+# --- Global project rules (apply to all artifacts and all generated code) ------
+rules:
+  project:
+    - AI calls ONLY inside app/Jobs/ExtraireDepensesDuRecu.php — NEVER in a Controller
+    - Form validation ONLY inside Form Request classes — NEVER $request->validate() inline
+    - Enums are PHP 8.3 backed enums with Eloquent casts — NEVER raw string comparisons
+      on statut or categorie
+    - List views ALWAYS eager-load relationships (->with() / ->load() / ->withCount())
+      — Debugbar will catch N+1
+    - Structured output ALWAYS via laravel/ai JSON schema — NEVER json_decode on free text
+    - Every DB query ALWAYS scoped to auth()->id()
+    - Cascade delete: Recu → Depenses (onDelete cascade at migration level)
+    - On any exception in the Job: ALWAYS Log::error() + set statut = StatutRecu::Echoue + save a useful message in erreur_traitement
+    - Groq API key NEVER hardcoded — always via config('ai.providers.groq.api_key')
+    - texte_brut and image_path are mutually exclusive on a Recu
+
+  proposal:
+    - Read existing openspec/specs/ before generating any artifact
+    - Reference AGENTS.md non-negotiable architecture rules explicitly
+    - State which branch (from branches.features) this change belongs to
+    - Include a "Files to create/modify" section with real paths from Key files
+    - The structured output JSON schema must never change from the contract above
+    - Note any N+1 risk and which eager-loading call prevents it
+    - Confirm whether the feature touches the texte_brut path, the image_path path,
+      or both, and consider the MCD/MLD impact (new columns, new enum cases, etc.)
+
+  specs:
+    - Use Given/When/Then format for every scenario
+    - Always include at least one failure scenario (validation error, AI exception,
+      AI response outside schema, network error)
+    - Reference enum values by PHP case name, not raw strings
+      (StatutRecu::Echoue, not 'echoue')
+    - For scenarios touching erreur_traitement, specify what message is stored and
+      that it is shown to the user on the Recu detail page
+    - Cross-user isolation scenario required for any feature exposing user data
+      (403/404, never another user's Recu or Depense)
+
+  design:
+    - Give exact method signatures for Controllers, Jobs, Services, Form Requests
+    - Show the Eloquent query with its eager-loading call
+    - For AI-related design, show the call to ExtractionService and how the result
+      maps to RecuContract::schema()
+    - For Job design, always include $tries, the try/catch shape, and how statut +
+      erreur_traitement are set on failure
+    - For queue-related design, specify the dispatch call and queue connection
+      assumptions (database driver, no Docker app/worker container — run via
+      `php artisan queue:work` locally)
+
+  tasks:
+    - Break tasks into chunks of max 2 hours
+    - Each task includes the exact file(s) to modify/create and the expected outcome
+    - Include the exact artisan command where applicable (make:job, make:request,
+      make:controller, make:enum, make:test)
+    - Tag AI-assisted tasks with [AI-assisted] or [AI-generated, reviewed]
+    - Always end the task list with a "Verify" step (php artisan test, Debugbar
+      N+1 check, manual flow check)
+    - End with one commit task following commits.format, scoped to commits.scopes,
+      matching the feature's branch
+    - For bonus features (image upload, PHPUnit AI::fake test), mark tasks as
+      optional and note they depend on Sprints 1-4 being complete
+
+# --- Validation before archiving a feature ---------------------------------------
+validation:
+  before_archive:
+    - All scenarios in specs/ have at least one passing test or manual verification note
+    - No raw string comparisons on statut/categorie in generated code (must use enums)
+    - No AI/HTTP calls outside app/Jobs/ExtraireDepensesDuRecu.php
+    - No $request->validate() inline in controllers
+    - Debugbar shows constant query count on any modified list view
+    - At least one commit exists for the day's work on the feature branch

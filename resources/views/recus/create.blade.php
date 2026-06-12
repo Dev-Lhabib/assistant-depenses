@@ -8,19 +8,19 @@
             @csrf
 
             <div class="mb-4">
-                <label for="texte_source" class="block text-sm font-medium text-gray-700 mb-1">
+                <label for="texte_brut" class="block text-sm font-medium text-gray-700 mb-1">
                     Texte du reçu
                 </label>
                 <textarea
-                    id="texte_source"
-                    name="texte_source"
+                    id="texte_brut"
+                    name="texte_brut"
                     rows="10"
                     placeholder="Colle ici le texte de ton reçu fournisseur..."
                     class="w-full border rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
-                           @error('texte_source') border-red-500 @enderror"
-                >{{ old('texte_source') }}</textarea>
+                           @error('texte_brut') border-red-500 @enderror"
+                >{{ old('texte_brut') }}</textarea>
 
-                @error('texte_source')
+                @error('texte_brut')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>

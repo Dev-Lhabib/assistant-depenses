@@ -45,8 +45,8 @@ class RecuController extends Controller
 
         ExtraireDepensesDuRecu::dispatch($recu);
 
-        return redirect()->route('recus.index')
-            ->with('success', 'Reçu soumis avec succès.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Votre reçu est bien créé et en cours de traitement.');
     }
 
     /**
@@ -86,7 +86,7 @@ class RecuController extends Controller
 
         $recu->delete();
 
-        return redirect()->route('recus.index')
-            ->with('success', 'Reçu supprimé.');
+        return redirect()->route('dashboard')
+            ->with('success', 'Reçu supprimé avec succès.');
     }
 }
